@@ -14,7 +14,7 @@
 #define DEBUG_MESSAGE(A) do { } while(0)
 #endif
 
-#define BLOCK_SHIFT 12
+#define BLOCK_SHIFT 20
 #define BLOCK_SIZE (1<<BLOCK_SHIFT)
 
 #ifdef _WIN32
@@ -225,7 +225,7 @@ static size_t data_arrived(void *ptr, size_t size, size_t nmemb, void *state_)
 		}
 	}
 
-	DEBUG_MESSAGE((state->ctx, "data arrived: offset=%d len=%d", state->current_fill_point, size));
+	DEBUG_MESSAGE((state->ctx, "data arrived: offset=%d len=%d", state->current_fill_point, (int) size));
 	old_start = state->current_fill_point;
 	memcpy(state->buffer + state->current_fill_point, ptr, size);
 	state->current_fill_point += size;

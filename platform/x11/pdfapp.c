@@ -3,7 +3,6 @@
 
 #include <ctype.h> /* for tolower() */
 
-#define ZOOMSTEP 1.142857
 #define BEYOND_THRESHHOLD 40
 #ifndef PATH_MAX
 #define PATH_MAX (1024)
@@ -28,6 +27,26 @@ enum
 
 static void pdfapp_showpage(pdfapp_t *app, int loadpage, int drawpage, int repaint, int transition, int searching);
 static void pdfapp_updatepage(pdfapp_t *app);
+
+static const int zoomlist[] = { 18, 24, 36, 54, 72, 96, 120, 144, 180, 216, 288 };
+
+static int zoom_in(int oldres)
+{
+	int i;
+	for (i = 0; i < nelem(zoomlist) - 1; ++i)
+		if (zoomlist[i] <= oldres && zoomlist[i+1] > oldres)
+			return zoomlist[i+1];
+	return zoomlist[i];
+}
+
+static int zoom_out(int oldres)
+{
+	int i;
+	for (i = 0; i < nelem(zoomlist) - 1; ++i)
+		if (zoomlist[i] < oldres && zoomlist[i+1] >= oldres)
+			return zoomlist[i];
+	return zoomlist[0];
+}
 
 static void pdfapp_warn(pdfapp_t *app, const char *fmt, ...)
 {
@@ -281,6 +300,8 @@ void pdfapp_open_progressive(pdfapp_t *app, char *filename, int reload, int bps)
 			fz_try(ctx)
 			{
 				app->pagecount = fz_count_pages(app->doc);
+				if (app->pagecount <= 0)
+					fz_throw(ctx, FZ_ERROR_GENERIC, "No pages in document");
 			}
 			fz_catch(ctx)
 			{
@@ -1036,15 +1057,11 @@ void pdfapp_onkey(pdfapp_t *app, int c)
 
 	case '+':
 	case '=':
-		app->resolution *= ZOOMSTEP;
-		if (app->resolution > MAXRES)
-			app->resolution = MAXRES;
+		app->resolution = zoom_in(app->resolution);
 		pdfapp_showpage(app, 0, 1, 1, 0, 0);
 		break;
 	case '-':
-		app->resolution /= ZOOMSTEP;
-		if (app->resolution < MINRES)
-			app->resolution = MINRES;
+		app->resolution = zoom_out(app->resolution);
 		pdfapp_showpage(app, 0, 1, 1, 0, 0);
 		break;
 
@@ -1506,9 +1523,9 @@ void pdfapp_onmouse(pdfapp_t *app, int x, int y, int btn, int modifiers, int sta
 			{
 				/* zoom in/out if ctrl is pressed */
 				if (dir > 0)
-					app->resolution *= ZOOMSTEP;
+					app->resolution = zoom_in(app->resolution);
 				else
-					app->resolution /= ZOOMSTEP;
+					app->resolution = zoom_out(app->resolution);
 				if (app->resolution > MAXRES)
 					app->resolution = MAXRES;
 				if (app->resolution < MINRES)
