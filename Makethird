@@ -75,6 +75,7 @@ FREETYPE_SRC := \
 	ftbase.c \
 	ftbbox.c \
 	ftbitmap.c \
+	ftdebug.c \
 	ftgasp.c \
 	ftglyph.c \
 	ftinit.c \
@@ -202,7 +203,6 @@ JPEG_SRC := \
 	jidctfst.c \
 	jidctint.c \
 	jmemmgr.c \
-	jmemnobs.c \
 	jquant1.c \
 	jquant2.c \
 	jutils.c \
@@ -215,7 +215,7 @@ $(JPEG_OUT)/%.o: $(JPEG_DIR)/%.c | $(JPEG_OUT)
 
 JPEG_CFLAGS := -Iscripts/jpeg -I$(JPEG_DIR)
 else
-JPEG_CFLAGS := $(SYS_JPEG_CFLAGS)
+JPEG_CFLAGS := $(SYS_JPEG_CFLAGS) -DSHARE_JPEG
 JPEG_LIBS := $(SYS_JPEG_LIBS)
 endif
 

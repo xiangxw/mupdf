@@ -2,6 +2,9 @@ package com.artifex.mupdfdemo;
 
 import java.util.ArrayList;
 
+import com.artifex.mupdfdemo.MuPDFCore.Cookie;
+
+import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.Context;
@@ -398,6 +401,7 @@ public class MuPDFPageView extends PageView implements MuPDFView {
 		return Hit.Nothing;
 	}
 
+	@TargetApi(11)
 	public boolean copySelection() {
 		final StringBuilder text = new StringBuilder();
 
@@ -548,16 +552,31 @@ public class MuPDFPageView extends PageView implements MuPDFView {
 		return true;
 	}
 
-	@Override
-	protected void drawPage(Bitmap bm, int sizeX, int sizeY,
-			int patchX, int patchY, int patchWidth, int patchHeight) {
-		mCore.drawPage(bm, mPageNumber, sizeX, sizeY, patchX, patchY, patchWidth, patchHeight);
-	}
 
 	@Override
-	protected void updatePage(Bitmap bm, int sizeX, int sizeY,
-			int patchX, int patchY, int patchWidth, int patchHeight) {
-		mCore.updatePage(bm, mPageNumber, sizeX, sizeY, patchX, patchY, patchWidth, patchHeight);
+	protected CancellableTaskDefinition<Void, Void> getDrawPageTask(final Bitmap bm, final int sizeX, final int sizeY,
+			final int patchX, final int patchY, final int patchWidth, final int patchHeight) {
+		return new MuPDFCancellableTaskDefinition<Void, Void>(mCore) {
+			@Override
+			public Void doInBackground(MuPDFCore.Cookie cookie, Void ... params) {
+				mCore.drawPage(bm, mPageNumber, sizeX, sizeY, patchX, patchY, patchWidth, patchHeight, cookie);
+				return null;
+			}
+		};
+
+	}
+
+	protected CancellableTaskDefinition<Void, Void> getUpdatePageTask(final Bitmap bm, final int sizeX, final int sizeY,
+			final int patchX, final int patchY, final int patchWidth, final int patchHeight)
+	{
+		return new MuPDFCancellableTaskDefinition<Void, Void>(mCore) {
+
+			@Override
+			public Void doInBackground(MuPDFCore.Cookie cookie, Void ... params) {
+				mCore.updatePage(bm, mPageNumber, sizeX, sizeY, patchX, patchY, patchWidth, patchHeight, cookie);
+				return null;
+			}
+		};
 	}
 
 	@Override
