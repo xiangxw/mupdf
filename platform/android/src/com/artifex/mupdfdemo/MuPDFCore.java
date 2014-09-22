@@ -21,11 +21,14 @@ public class MuPDFCore
 	private long globals;
 	private byte fileBuffer[];
 	private String file_format;
+	private boolean isUnencryptedPDF;
+	private final boolean wasOpenedFromBuffer;
 
 	/* The native functions */
 	private native long openFile(String filename);
-	private native long openBuffer();
+	private native long openBuffer(String magic);
 	private native String fileFormatInternal();
+	private native boolean isUnencryptedPDFInternal();
 	private native int countPagesInternal();
 	private native void gotoPageInternal(int localActionPageNum);
 	private native float getPageWidth();
@@ -109,17 +112,20 @@ public class MuPDFCore
 			throw new Exception(String.format(context.getString(R.string.cannot_open_file_Path), filename));
 		}
 		file_format = fileFormatInternal();
+		isUnencryptedPDF = isUnencryptedPDFInternal();
+		wasOpenedFromBuffer = false;
 	}
 
-	public MuPDFCore(Context context, byte buffer[]) throws Exception
-	{
+	public MuPDFCore(Context context, byte buffer[], String magic) throws Exception {
 		fileBuffer = buffer;
-		globals = openBuffer();
+		globals = openBuffer(magic != null ? magic : "");
 		if (globals == 0)
 		{
 			throw new Exception(context.getString(R.string.cannot_open_buffer));
 		}
 		file_format = fileFormatInternal();
+		isUnencryptedPDF = isUnencryptedPDFInternal();
+		wasOpenedFromBuffer = true;
 	}
 
 	public  int countPages()
@@ -133,6 +139,16 @@ public class MuPDFCore
 	public String fileFormat()
 	{
 		return file_format;
+	}
+
+	public boolean isUnencryptedPDF()
+	{
+		return isUnencryptedPDF;
+	}
+
+	public boolean wasOpenedFromBuffer()
+	{
+		return wasOpenedFromBuffer;
 	}
 
 	private synchronized int countPagesSynchronized() {

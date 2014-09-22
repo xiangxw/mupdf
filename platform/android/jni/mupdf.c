@@ -249,15 +249,23 @@ static void alerts_fin(globals *glo)
 	glo->alerts_initialised = 0;
 }
 
+// Should only be called from the single background AsyncTask thread
 static globals *get_globals(JNIEnv *env, jobject thiz)
 {
-	globals *glo = (globals *)(void *)((*env)->GetLongField(env, thiz, global_fid));
+	globals *glo = (globals *)(intptr_t)((*env)->GetLongField(env, thiz, global_fid));
 	if (glo != NULL)
 	{
 		glo->env = env;
 		glo->thiz = thiz;
 	}
 	return glo;
+}
+
+// May be called from any thread, provided the values of glo->env and glo->thiz
+// are not used.
+static globals *get_globals_any_thread(JNIEnv *env, jobject thiz)
+{
+	return (globals *)(intptr_t)((*env)->GetLongField(env, thiz, global_fid));
 }
 
 JNIEXPORT jlong JNICALL
@@ -332,7 +340,7 @@ JNI_FN(MuPDFCore_openFile)(JNIEnv * env, jobject thiz, jstring jfilename)
 
 	(*env)->ReleaseStringUTFChars(env, jfilename, filename);
 
-	return (jlong)(void *)glo;
+	return (jlong)(intptr_t)glo;
 }
 
 typedef struct buffer_state_s
@@ -363,6 +371,7 @@ static int bufferStreamNext(fz_stream *stream, int max)
 
 	stream->rp = bs->buffer;
 	stream->wp = stream->rp + len;
+	stream->pos += len;
 	if (len == 0)
 		return EOF;
 	return *stream->rp++;
@@ -399,13 +408,14 @@ static void bufferStreamSeek(fz_stream *stream, int offset, int whence)
 }
 
 JNIEXPORT jlong JNICALL
-JNI_FN(MuPDFCore_openBuffer)(JNIEnv * env, jobject thiz)
+JNI_FN(MuPDFCore_openBuffer)(JNIEnv * env, jobject thiz, jstring jmagic)
 {
 	globals *glo;
 	fz_context *ctx;
 	jclass clazz;
 	fz_stream *stream = NULL;
 	buffer_state *bs;
+	const char *magic;
 
 #ifdef NDK_PROFILER
 	monstartup("libmupdf.so");
@@ -423,15 +433,25 @@ JNI_FN(MuPDFCore_openBuffer)(JNIEnv * env, jobject thiz)
 	glo->thiz = thiz;
 	buffer_fid = (*env)->GetFieldID(env, clazz, "fileBuffer", "[B");
 
+	magic = (*env)->GetStringUTFChars(env, jmagic, NULL);
+	if (magic == NULL)
+	{
+		LOGE("Failed to get magic");
+		free(glo);
+		return 0;
+	}
+
 	/* 128 MB store for low memory devices. Tweak as necessary. */
 	glo->ctx = ctx = fz_new_context(NULL, NULL, 128 << 20);
 	if (!ctx)
 	{
 		LOGE("Failed to initialise context");
+		(*env)->ReleaseStringUTFChars(env, jmagic, magic);
 		free(glo);
 		return 0;
 	}
 
+	fz_register_document_handlers(ctx);
 	fz_var(stream);
 
 	glo->doc = NULL;
@@ -448,7 +468,7 @@ JNI_FN(MuPDFCore_openBuffer)(JNIEnv * env, jobject thiz)
 		fz_try(ctx)
 		{
 			glo->current_path = NULL;
-			glo->doc = fz_open_document_with_stream(ctx, "", stream);
+			glo->doc = fz_open_document_with_stream(ctx, magic, stream);
 			alerts_init(glo);
 		}
 		fz_catch(ctx)
@@ -472,7 +492,9 @@ JNI_FN(MuPDFCore_openBuffer)(JNIEnv * env, jobject thiz)
 		glo = NULL;
 	}
 
-	return (jlong)(void *)glo;
+	(*env)->ReleaseStringUTFChars(env, jmagic, magic);
+
+	return (jlong)(intptr_t)glo;
 }
 
 JNIEXPORT int JNICALL
@@ -503,6 +525,22 @@ JNI_FN(MuPDFCore_fileFormatInternal)(JNIEnv * env, jobject thiz)
 
 	return (*env)->NewStringUTF(env, info);
 }
+
+JNIEXPORT jboolean JNICALL
+JNI_FN(MuPDFCore_isUnencryptedPDFInternal)(JNIEnv * env, jobject thiz)
+{
+	globals *glo = get_globals_any_thread(env, thiz);
+	if (glo == NULL)
+		return JNI_FALSE;
+
+	pdf_document *idoc = pdf_specifics(glo->doc);
+	if (idoc == NULL)
+		return JNI_FALSE; // Not a PDF
+
+	int cryptVer = pdf_crypt_version(idoc);
+	return (cryptVer == 0) ? JNI_TRUE : JNI_FALSE;
+}
+
 
 JNIEXPORT void JNICALL
 JNI_FN(MuPDFCore_gotoPageInternal)(JNIEnv *env, jobject thiz, int page)
@@ -641,7 +679,7 @@ JNI_FN(MuPDFCore_drawPage)(JNIEnv *env, jobject thiz, jobject bitmap,
 	page_cache *pc = &glo->pages[glo->current];
 	int hq = (patchW < pageW || patchH < pageH);
 	fz_matrix scale;
-	fz_cookie *cookie = (fz_cookie *)(unsigned int)cookiePtr;
+	fz_cookie *cookie = (fz_cookie *)(intptr_t)cookiePtr;
 
 	if (pc->page == NULL)
 		return 0;
@@ -827,7 +865,7 @@ JNI_FN(MuPDFCore_updatePageInternal)(JNIEnv *env, jobject thiz, jobject bitmap, 
 	fz_document *doc = glo->doc;
 	rect_node *crect;
 	fz_matrix scale;
-	fz_cookie *cookie = (fz_cookie *)(unsigned int)cookiePtr;
+	fz_cookie *cookie = (fz_cookie *)(intptr_t)cookiePtr;
 
 	for (i = 0; i < NUM_CACHE; i++)
 	{
@@ -843,7 +881,7 @@ JNI_FN(MuPDFCore_updatePageInternal)(JNIEnv *env, jobject thiz, jobject bitmap, 
 		/* Without a cached page object we cannot perform a partial update so
 		render the entire bitmap instead */
 		JNI_FN(MuPDFCore_gotoPageInternal)(env, thiz, page);
-		return JNI_FN(MuPDFCore_drawPage)(env, thiz, bitmap, pageW, pageH, patchX, patchY, patchW, patchH, (jlong)(unsigned int)cookie);
+		return JNI_FN(MuPDFCore_drawPage)(env, thiz, bitmap, pageW, pageH, patchX, patchY, patchW, patchH, (jlong)(intptr_t)cookie);
 	}
 
 	idoc = pdf_specifics(doc);
@@ -1499,7 +1537,7 @@ JNI_FN(MuPDFCore_addMarkupAnnotationInternal)(JNIEnv * env, jobject thiz, jobjec
 		float zoom = glo->resolution / 72;
 		zoom = 1.0 / zoom;
 		fz_scale(&ctm, zoom, zoom);
-		pt_cls = (*env)->FindClass(env, "android.graphics.PointF");
+		pt_cls = (*env)->FindClass(env, "android/graphics/PointF");
 		if (pt_cls == NULL) fz_throw(ctx, FZ_ERROR_GENERIC, "FindClass");
 		x_fid = (*env)->GetFieldID(env, pt_cls, "x", "F");
 		if (x_fid == NULL) fz_throw(ctx, FZ_ERROR_GENERIC, "GetFieldID(x)");
@@ -1572,7 +1610,7 @@ JNI_FN(MuPDFCore_addInkAnnotationInternal)(JNIEnv * env, jobject thiz, jobjectAr
 		float zoom = glo->resolution / 72;
 		zoom = 1.0 / zoom;
 		fz_scale(&ctm, zoom, zoom);
-		pt_cls = (*env)->FindClass(env, "android.graphics.PointF");
+		pt_cls = (*env)->FindClass(env, "android/graphics/PointF");
 		if (pt_cls == NULL) fz_throw(ctx, FZ_ERROR_GENERIC, "FindClass");
 		x_fid = (*env)->GetFieldID(env, pt_cls, "x", "F");
 		if (x_fid == NULL) fz_throw(ctx, FZ_ERROR_GENERIC, "GetFieldID(x)");
@@ -2592,19 +2630,19 @@ JNI_FN(MuPDFCore_dumpMemoryInternal)(JNIEnv * env, jobject thiz)
 JNIEXPORT jlong JNICALL
 JNI_FN(MuPDFCore_createCookie)(JNIEnv * env, jobject thiz)
 {
-	globals *glo = get_globals(env, thiz);
+	globals *glo = get_globals_any_thread(env, thiz);
 	if (glo == NULL)
 		return 0;
 	fz_context *ctx = glo->ctx;
 
-	return (jlong) (unsigned int) fz_calloc_no_throw(ctx,1, sizeof(fz_cookie));
+	return (jlong) (intptr_t) fz_calloc_no_throw(ctx,1, sizeof(fz_cookie));
 }
 
 JNIEXPORT void JNICALL
 JNI_FN(MuPDFCore_destroyCookie)(JNIEnv * env, jobject thiz, jlong cookiePtr)
 {
-	fz_cookie *cookie = (fz_cookie *) (unsigned int) cookiePtr;
-	globals *glo = get_globals(env, thiz);
+	fz_cookie *cookie = (fz_cookie *) (intptr_t) cookiePtr;
+	globals *glo = get_globals_any_thread(env, thiz);
 	if (glo == NULL)
 		return;
 	fz_context *ctx = glo->ctx;
@@ -2615,7 +2653,7 @@ JNI_FN(MuPDFCore_destroyCookie)(JNIEnv * env, jobject thiz, jlong cookiePtr)
 JNIEXPORT void JNICALL
 JNI_FN(MuPDFCore_abortCookie)(JNIEnv * env, jobject thiz, jlong cookiePtr)
 {
-	fz_cookie *cookie = (fz_cookie *) (unsigned int) cookiePtr;
+	fz_cookie *cookie = (fz_cookie *) (intptr_t) cookiePtr;
 	if (cookie != NULL)
 		cookie->abort = 1;
 }
