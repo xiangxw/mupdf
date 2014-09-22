@@ -194,33 +194,6 @@
     <ClCompile Include="..\..\thirdparty\freetype\src\base\fttype1.c" />
     <ClCompile Include="..\..\thirdparty\freetype\src\base\ftxf86.c" />
     <ClCompile Include="..\..\thirdparty\mujs\one.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsarray.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsboolean.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsbuiltin.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jscompile.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsdate.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsdtoa.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsdump.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jserror.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsfunction.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsgc.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsintern.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jslex.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsmath.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsnumber.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsobject.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\json.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsparse.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsproperty.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsregexp.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsrun.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsstate.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsstring.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\jsvalue.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\main.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\regex.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\utf.c" />
-    <CustomBuildStep Include="..\..\thirdparty\mujs\utftype.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\thirdparty\openjpeg\libopenjpeg\bio.h" />
@@ -339,16 +312,6 @@
     <ClInclude Include="..\..\thirdparty\freetype\include\freetype\internal\services\svwinfnt.h" />
     <ClInclude Include="..\..\thirdparty\freetype\include\freetype\internal\services\svxf86nm.h" />
     <ClInclude Include="..\..\thirdparty\mujs\mujs.h" />
-    <ClInclude Include="..\..\thirdparty\mujs\astnames.h" />
-    <ClInclude Include="..\..\thirdparty\mujs\jsbuiltin.h" />
-    <ClInclude Include="..\..\thirdparty\mujs\jscompile.h" />
-    <ClInclude Include="..\..\thirdparty\mujs\jsi.h" />
-    <ClInclude Include="..\..\thirdparty\mujs\jslex.h" />
-    <ClInclude Include="..\..\thirdparty\mujs\jsrun.h" />
-    <ClInclude Include="..\..\thirdparty\mujs\jsvalue.h" />
-    <ClInclude Include="..\..\thirdparty\mujs\opnames.h" />
-    <ClInclude Include="..\..\thirdparty\mujs\regex.h" />
-    <ClInclude Include="..\..\thirdparty\mujs\utf.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
