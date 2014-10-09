@@ -195,7 +195,6 @@
     <ClCompile Include="..\..\source\fitz\draw-path.c" />
     <ClCompile Include="..\..\source\fitz\draw-scale-simple.c" />
     <ClCompile Include="..\..\source\fitz\draw-unpack.c" />
-    <ClCompile Include="..\..\source\fitz\dtoa.c" />
     <ClCompile Include="..\..\source\fitz\error.c" />
     <ClCompile Include="..\..\source\fitz\filter-basic.c" />
     <ClCompile Include="..\..\source\fitz\filter-dct.c" />
@@ -206,6 +205,7 @@
     <ClCompile Include="..\..\source\fitz\filter-lzw.c" />
     <ClCompile Include="..\..\source\fitz\filter-predict.c" />
     <ClCompile Include="..\..\source\fitz\font.c" />
+    <ClCompile Include="..\..\source\fitz\ftoa.c" />
     <ClCompile Include="..\..\source\fitz\function.c" />
     <ClCompile Include="..\..\source\fitz\geometry.c" />
     <ClCompile Include="..\..\source\fitz\getopt.c" />
@@ -240,6 +240,7 @@
     <ClCompile Include="..\..\source\fitz\stream-prog.c" />
     <ClCompile Include="..\..\source\fitz\stream-read.c" />
     <ClCompile Include="..\..\source\fitz\string.c" />
+    <ClCompile Include="..\..\source\fitz\strtod.c" />
     <ClCompile Include="..\..\source\fitz\svg-device.c" />
     <ClCompile Include="..\..\source\fitz\test-device.c" />
     <ClCompile Include="..\..\source\fitz\text.c" />

@@ -88,7 +88,8 @@ static void saveDoc(char *current_path, fz_document *doc)
 			FILE *fin = fopen(current_path, "rb");
 			FILE *fout = fopen(tmp, "wb");
 			char buf[256];
-			int n, err = 1;
+			size_t n;
+			int err = 1;
 
 			if (fin && fout)
 			{
@@ -124,6 +125,35 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 @implementation MuDocumentController
 {
+	fz_document *doc;
+	MuDocRef *docRef;
+	NSString *key;
+	char *filePath;
+	BOOL reflowMode;
+	MuOutlineController *outline;
+	UIScrollView *canvas;
+	UILabel *indicator;
+	UISlider *slider;
+	UISearchBar *searchBar;
+	UIBarButtonItem *nextButton, *prevButton, *cancelButton, *searchButton, *outlineButton, *linkButton;
+	UIBarButtonItem *moreButton;
+	UIBarButtonItem *shareButton, *printButton, *annotButton;
+	UIBarButtonItem *highlightButton, *underlineButton, *strikeoutButton;
+	UIBarButtonItem *inkButton;
+	UIBarButtonItem *tickButton;
+	UIBarButtonItem *deleteButton;
+	UIBarButtonItem *reflowButton;
+	UIBarButtonItem *backButton;
+	UIBarButtonItem *sliderWrapper;
+	int barmode;
+	int searchPage;
+	int cancelSearch;
+	int showLinks;
+	int width; // current screen size
+	int height;
+	int current; // currently visible page
+	int scroll_animating; // stop view updates during scrolling animations
+	float scale; // scale applied to views (only used in reflow mode)
 	BOOL _isRotating;
 }
 
@@ -323,6 +353,7 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) viewWillAppear: (BOOL)animated
 {
+	[super viewWillAppear:animated];
 	[self setTitle: [key lastPathComponent]];
 
 	[slider setValue: current];
@@ -379,11 +410,13 @@ static void saveDoc(char *current_path, fz_document *doc)
 
 - (void) viewDidAppear: (BOOL)animated
 {
+	[super viewDidAppear:animated];
 	[self scrollViewDidScroll: canvas];
 }
 
 - (void) viewWillDisappear: (BOOL)animated
 {
+	[super viewWillDisappear:animated];
 	if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 7.0)
 		[slider removeFromSuperview];
 
